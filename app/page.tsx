@@ -1,65 +1,149 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import { useChat } from 'ai/react'
+import { StatsCard, SalesChart, RecentOrders } from '@/components/dashboard-ui'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupText,
+  InputGroupTextarea,
+} from "@/components/ui/input-group"
+import { Separator } from '@/components/ui/separator'
+import { ArrowUpIcon, InspectionPanel, Bot, Check } from 'lucide-react'
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert"
+import { CheckCircle2Icon } from 'lucide-react';
+
+export default function Dashboard() {
+  const { messages, input, handleInputChange, handleSubmit, error } = useChat({
+    maxSteps: 5,
+  })
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault() // Prevent the new line
+      if (input.trim()) {
+        const form = e.currentTarget.closest('form')
+        form?.requestSubmit() // Programmatically submit the form
+      }
+    }
+  }
+  // Helper to check if conversation has started
+  const hasMessages = messages.length > 0
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    // 1. MAIN CONTAINER: Fixed height (Screen - Navbar), no page scroll
+    <div className="max-w-4xl mx-auto h-[calc(100vh-65px)] flex flex-col p-4">
+      {error && (
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4">
+          <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800">
+            <CheckCircle2Icon className="h-4 w-4" />
+            <AlertTitle>Access Denied</AlertTitle>
+            <AlertDescription>
+              You must be logged in to use the assistant.
+            </AlertDescription>
+          </Alert>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+      )}
+      {/* 2. CHAT AREA: Only visible when there are messages */}
+      {hasMessages ? (
+        <div className="flex-1 overflow-y-auto space-y-6 px-2 pb-4 scrollbar-thin scrollbar-thumb-gray-200">
+          {messages.map(m => (
+            <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[85%] ${m.role === 'user' ? 'bg-blue-600 text-white p-3 rounded-xl' : 'w-full'}`}>
+                
+                {/* Text Response */}
+                {m.content && <div className={m.role === 'user' ? '' : 'prose'}>{m.content}</div>}
+
+                {/* Tool Outputs */}
+                {m.toolInvocations?.map((toolInvocation: any) => {
+                  const toolCallId = toolInvocation.toolCallId
+                  if (!('result' in toolInvocation)) return <div key={toolCallId} className="animate-pulse text-sm text-gray-500">Thinking...</div>
+
+                  if (toolInvocation.toolName === 'getStats') {
+                    const stats = toolInvocation.result
+                    return (
+                      <div key={toolCallId} className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                        <StatsCard title="Total Revenue" value={`$${stats.totalRevenue}`} />
+                        <StatsCard title="Total Orders" value={stats.totalOrders} />
+                        <StatsCard title="Avg. Order" value={`$${stats.averageOrderValue}`} />
+                      </div>
+                    )
+                  }
+                  if (toolInvocation.toolName === 'getSalesTrend') {
+                    return <div key={toolCallId} className="mt-4"><SalesChart data={toolInvocation.result} /></div>
+                  }
+                  if (toolInvocation.toolName === 'getRecentTransactions') {
+                    return <div key={toolCallId} className="mt-4"><RecentOrders orders={toolInvocation.result} /></div>
+                  }
+                  return null
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        // 3. EMPTY STATE HERO: Visible when no messages
+        <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4 opacity-50">
+          <div className="p-4 bg-gray-100 rounded-full">
+            <Bot className="h-8 w-8 text-gray-500" />
+          </div>
+          {/* <h1>Hi {session.user.name}</h1> */}
+          <h2 className="text-2xl font-semibold text-gray-700">How can I help you today?</h2>
+        </div>
+      )}
+
+      {/* 4. INPUT AREA: Centered initially, fixed to bottom later */}
+      <div className={`flex-none transition-all duration-500 ease-in-out ${!hasMessages ? 'flex-1 flex items-center justify-center pb-32' : 'pt-4'}`}>
+        <form 
+          className="w-full relative"
+          onSubmit={(e) => {
+            e.preventDefault()
+            handleSubmit(e)
+          }}
+        >
+          <InputGroup className="shadow-sm">  
+            <InputGroupTextarea 
+              value={input} // <--- Important: Bind value to state
+              onChange={handleInputChange} 
+              onKeyDown={handleKeyDown}
+              placeholder="Ask about sales, revenue, or recent orders..." 
+              className="min-h-[50px] resize-none"
+              
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+            <InputGroupAddon align="block-end">
+              {/* <InputGroupButton
+                variant="outline"
+                className="rounded-full"
+                size="icon-xs"
+                type="button"
+              >
+                {/* <InspectionPanel /> */}
+              {/* </InputGroupButton> */} 
+              
+              <InputGroupText className="ml-auto text-xs text-gray-400">
+                AI can make mistakes.
+              </InputGroupText>
+              
+              <Separator orientation="vertical" className="!h-4" />
+              
+              <InputGroupButton
+                type="submit"
+                variant="default"
+                className="rounded-full bg-blue-600 hover:bg-blue-700"
+                size="icon-xs"
+                disabled={!input.trim()} // Prevent empty sends
+              >
+                <ArrowUpIcon />
+                <span className="sr-only">Send</span>
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
+        </form>
+      </div>
     </div>
-  );
+  )
 }

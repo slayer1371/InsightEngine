@@ -1,0 +1,4 @@
+date,amount,product_name,status, category
+2025-01-01,120.50,Widget A,completed, Acat
+2025-01-02,50.00,Widget B,completed, Bcat
+2025-01-03,200.00,Widget A,pending, Ccat
