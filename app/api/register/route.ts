@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma"
 import { NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
+import { sendVerificationEmail } from "@/lib/mail"
 
 export async function POST(req: Request) {
   try {
@@ -33,9 +34,8 @@ export async function POST(req: Request) {
       },
     })
 
-    // Return the user (excluding password)
-    const { password: newUserPassword, ...rest } = user
-    return NextResponse.json(rest)
+    await sendVerificationEmail(email);
+    return NextResponse.json(user)
 
   } catch (error) {
     console.log("REGISTRATION_ERROR", error)

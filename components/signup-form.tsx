@@ -69,7 +69,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
         setError("Registration succeeded but automatic login failed.")
         setIsLoading(false)
       } else {
-        router.push("/")
+        router.push(`/verify?email=${encodeURIComponent(email)}`)
       }
     } catch (err) {
       setError("An unexpected error occurred.")
