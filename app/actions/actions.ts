@@ -5,6 +5,28 @@ import { prisma } from "@/lib/prisma"
 import { startOfMonth, subMonths, format } from "date-fns"
 import { getServerSession } from "next-auth"
 
+export async function executeRawQuery(sql : string, userId: string) {
+  const session = await getServerSession(authOptions);
+  if(!session?.user?.id) throw new Error("Unauthorized");
+
+  if(!sql.trim().toLowerCase().startsWith("select")) {
+    throw new Error("Only SELECT queries are allowed");
+  }
+
+  if (userId !== session.user.id) {
+    throw new Error("Unauthorized: User ID mismatch");
+  }
+
+  const result = await prisma.$queryRawUnsafe(sql);
+  
+  // Convert BigInt and Decimal to regular numbers for JSON serialization
+  const serializable = JSON.parse(JSON.stringify(result, (_, value) =>
+    typeof value === 'bigint' ? Number(value) : value
+  ));
+  
+  return serializable;
+}
+
 // Tool 1: Get High-Level Stats (Revenue, Total Orders)
 export async function getDashboardStats() {
   const session = await getServerSession(authOptions)
