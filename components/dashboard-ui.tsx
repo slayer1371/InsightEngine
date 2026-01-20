@@ -18,6 +18,45 @@ export function StatsCard({ title, value, subtext }: { title: string, value: str
   )
 }
 
+export function DataTable({ data } : { data : Record<string, any>[] }) {
+  //Handle empty data
+  if (data.length === 0) {
+    return <div className="p-6 bg-white border rounded-xl shadow-sm">No data available.</div>
+  }
+  //extract column headers from keys of first object
+  const columns = Object.keys(data[0]);
+  //render table with headers and rows
+  return (
+    <div className="p-6 bg-white border rounded-xl shadow-sm overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            {columns.map((col) => (
+              <th
+                key={col}
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                {col}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {data.map((row, rowIndex) => (
+            <tr key={rowIndex}>
+              {columns.map((col) => (
+                <td key={col} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {String(row[col])}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 // 2. SALES CHART (For "Show me the trend")
 export function SalesChart({ data }: { data: { date: string, amount: number }[] }) {
   return (
