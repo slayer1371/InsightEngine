@@ -37,7 +37,7 @@ export async function getDashboardStats() {
     select: { totalAmount: true }
   })
 
-  const totalRevenue = orders.reduce((sum, order) => sum + Number(order.totalAmount), 0)
+  const totalRevenue = orders.reduce((sum: number, order: { totalAmount: string | number }) => sum + Number(order.totalAmount), 0)
   const averageOrder = totalRevenue / (orders.length || 1)
 
   return {
@@ -61,7 +61,7 @@ export async function getSalesHistory() {
   // Group by Date (Simple implementation)
   const salesByDate: Record<string, number> = {}
   
-  orders.forEach(order => {
+  orders.forEach((order: { createdAt: Date; totalAmount: string | number }) => {
     const date = order.createdAt.toISOString().split('T')[0] // YYYY-MM-DD
     salesByDate[date] = (salesByDate[date] || 0) + Number(order.totalAmount)
   })
